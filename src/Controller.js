@@ -1,24 +1,17 @@
 //Controller.js
-var box = document.getElementById('box'),
-    boxPos = 10,
-    boxVelocity = 2,
-    limit = 300;
-
-var requestAnimationFrame = window.requestAnimationFrame;
-
-function draw() {
-  box.style.left = boxPos +'px';
-}
-
 function update(){
-  boxPos += boxVelocity;
-  if(boxPos >= limit || boxPos <= 0) boxVelocity = -boxVelocity;
+  for (x = 0; x < worldBlocks.length; x++){
+    for (y = 0; y < worldBlocks[x].length; y++){
+      for (z = 0; z < worldBlocks[x][y].length; z++){
+        console.log(worldBlocks[x][y][z]);
+      }
+    }
+  }
 }
+
 
 function mainLoop() {
   update();
-  draw();
-  requstAnimationFrame(mainLoop);
 }
 
 mainLoop();
