@@ -2,18 +2,27 @@
 var vert = `#version 300 es
 
 in vec4 a_position;
+in vec4 a_normal;
 
 uniform mat4 u_transform;
 uniform mat4 u_project;
+uniform mat4 u_normTransform;
+
+out float lighting;
 
 void main() {
     gl_Position = u_project * u_transform * a_position;
+    vec4 normal = u_normTransform * a_normal;
+    vec3 light = normalize(vec3(0.85, 0.8, 0.75));
+    lighting = max(dot(normal.xyz, light), 0.0) * 0.7 + 0.3;
 }
 `;
 
 // fragment shader
 var frag = `#version 300 es
 precision highp float;
+
+in float lighting;
 
 uniform vec2 u_resolution;
 uniform float u_time;
@@ -28,6 +37,7 @@ void main() {
     color.r = sin(2.0 * f + 0.0000) * 0.6666 + 0.3333;
     color.g = sin(2.0 * f + 2.0944) * 0.6666 + 0.3333;
     color.b = sin(2.0 * f + 4.1887) * 0.6666 + 0.3333;
+    color.rgb *= lighting;
 }
 `;
 
@@ -47,10 +57,12 @@ function main() {
 
     // look up where vertex data needs to go
     var aPositionLoc = gl.getAttribLocation(program, "a_position");
+    var aNormalLoc = gl.getAttribLocation(program, "a_normal");
 
     // look up uniform locations
     var uTransformLoc = gl.getUniformLocation(program, "u_transform");
     var uProjectLoc = gl.getUniformLocation(program, "u_project");
+    var uNormTransformLoc = gl.getUniformLocation(program, "u_normTransform");
     var uResolutionLoc = gl.getUniformLocation(program, "u_resolution");
     var uTimeLoc = gl.getUniformLocation(program, "u_time");
 
@@ -59,15 +71,22 @@ function main() {
     gl.bindVertexArray(vao);
 
     // create and fill the position buffer
-    var positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    var positionBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
     gl.vertexAttribPointer(aPositionLoc, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(aPositionLoc);
 
+    // create and fill the normal buffer
+    var normalBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(aNormalLoc, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(aNormalLoc);
+
     // create and fill the index buffer
-    var indexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    var indexBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
     // scene drawing magic
@@ -107,10 +126,14 @@ function main() {
         mat4.rotate(transform, transform, now, [0, 1, 0.5]);
         var project = mat4.create();
         mat4.perspective(project, fieldOfView, aspect, zNear, zFar);
+        var normTransform = mat4.create();
+        mat4.invert(normTransform, transform);
+        mat4.transpose(normTransform, normTransform);
 
         // send the GPU the values it needs
         gl.uniformMatrix4fv(uTransformLoc, false, transform);
         gl.uniformMatrix4fv(uProjectLoc, false, project);
+        gl.uniformMatrix4fv(uNormTransformLoc, false, normTransform);
         gl.uniform2f(uResolutionLoc, gl.canvas.width, gl.canvas.height);
         gl.uniform1f(uTimeLoc, now);
 
@@ -122,48 +145,86 @@ function main() {
 }
 
 const positions = [
-    // Front face
+    // front
     -1.0, -1.0,  1.0,
      1.0, -1.0,  1.0,
      1.0,  1.0,  1.0,
     -1.0,  1.0,  1.0,
 
-    // Back face
+    // back
     -1.0, -1.0, -1.0,
     -1.0,  1.0, -1.0,
      1.0,  1.0, -1.0,
      1.0, -1.0, -1.0,
 
-    // Top face
+    // top
     -1.0,  1.0, -1.0,
     -1.0,  1.0,  1.0,
      1.0,  1.0,  1.0,
      1.0,  1.0, -1.0,
 
-    // Bottom face
+    // bot
     -1.0, -1.0, -1.0,
      1.0, -1.0, -1.0,
      1.0, -1.0,  1.0,
     -1.0, -1.0,  1.0,
 
-    // Right face
+    // right
      1.0, -1.0, -1.0,
      1.0,  1.0, -1.0,
      1.0,  1.0,  1.0,
      1.0, -1.0,  1.0,
 
-    // Left face
+    // left
     -1.0, -1.0, -1.0,
     -1.0, -1.0,  1.0,
     -1.0,  1.0,  1.0,
     -1.0,  1.0, -1.0
 ];
 
+const normals = [
+    // front
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+
+    // back
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+
+    // top
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+
+    // bot
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+
+    // right
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+
+    // left
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0
+ ];
+
 const indices = [
     0,  1,  2,      0,  2,  3,    // front
     4,  5,  6,      4,  6,  7,    // back
     8,  9,  10,     8,  10, 11,   // top
-    12, 13, 14,     12, 14, 15,   // bottom
+    12, 13, 14,     12, 14, 15,   // bot
     16, 17, 18,     16, 18, 19,   // right
     20, 21, 22,     20, 22, 23,   // left
 ];
