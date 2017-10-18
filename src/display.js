@@ -2,12 +2,12 @@
 var vert = `#version 300 es
 
 in vec4 a_position;
-in vec4 a_normal;
+in vec3 a_normal;
 
-uniform mat4 u_transform;
-uniform mat4 u_normTransform;
-uniform mat4 u_project;
 uniform vec3 u_offset;
+uniform mat4 u_transform;
+uniform mat4 u_project;
+uniform mat4 u_normTransform;
 
 out float lighting;
 
@@ -15,9 +15,9 @@ void main() {
     vec4 pos = a_position;
     pos.xyz = pos.xyz + u_offset;
     gl_Position = u_project * u_transform * pos;
-    vec4 normal = u_normTransform * a_normal;
+    vec4 normal = u_normTransform * vec4(a_normal, 1.0);
     vec3 light = normalize(vec3(0.85, 0.8, 0.75));
-    lighting = max(dot(normal.xyz, light), 0.0) * 0.7 + 0.3;
+    lighting = max(dot(normal.xyz, light), 0.0) * 0.8 + 0.2;
 }
 `;
 
@@ -50,6 +50,13 @@ function main() {
 
     // make a new world (currently in testing configuration)
     var world = new World(8);
+    // fuck with the world a lot
+    world.fillArea([2, 2, 3], [5, 5, 5], FILL_ADD);
+    world.fillArea([3, 3, 6], [4, 4, 6], FILL_ADD);
+    world.fillArea([2, 3, 3], [5, 4, 4], FILL_REMOVE);
+    world.fillArea([3, 2, 3], [4, 5, 4], FILL_REMOVE);
+    world.fillArea([2, 2, 4], [5, 5, 6], FILL_TOGGLE);
+    // figure out what needs to be drawn
     var blocks = world.getSolids();
 
     // get a WebGL context
@@ -91,21 +98,18 @@ function main() {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
     // look up uniform locations
-    var uTransformLoc = gl.getUniformLocation(program, "u_transform");
-    var uNormTransformLoc = gl.getUniformLocation(program, "u_normTransform");
-    var uProjectLoc = gl.getUniformLocation(program, "u_project");
     var uOffsetLoc = gl.getUniformLocation(program, "u_offset");
+    var uTransformLoc = gl.getUniformLocation(program, "u_transform");
+    var uProjectLoc = gl.getUniformLocation(program, "u_project");
+    var uNormTransformLoc = gl.getUniformLocation(program, "u_normTransform");
     var uResolutionLoc = gl.getUniformLocation(program, "u_resolution");
     var uTimeLoc = gl.getUniformLocation(program, "u_time");
+
 
     // scene drawing magic
     var then = 0;
     requestAnimationFrame(drawScene);
-
-    // where the magic happens
     function drawScene(now) {
-
-        // time stuff
         now *= 0.001;
         var deltaTime = now - then; // not used atm, but will be important for animations
         then = now;
@@ -124,32 +128,41 @@ function main() {
         // use the right buffer (redundant now as there's only one)
         gl.bindVertexArray(vao);
 
-
-        // some bullshit hacky shit
-        var transform = mat4.create();
-        mat4.translate(transform, transform, [-0.0, 0.0, -6.0]);
-        mat4.rotate(transform, transform, now, [0, 1, 0.5]);
-        mat4.scale(transform, transform, [1 / world.size, 1 / world.size, 1 / world.size]);
-        var normTransform = mat4.create();
-        mat4.invert(normTransform, transform);
-        mat4.transpose(normTransform, normTransform);
-        var project = mat4.create();
+        // view parameters
         const fieldOfView = 45 * Math.PI / 180;
         const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
         const zNear = 0.1;
         const zFar = 100.0;
+
+        // TRANSFORMS READ IN THE REVERSE ORDER
+
+        // model transform
+        var transform = mat4.create();
+        mat4.translate(transform, transform, [0, 0, -6]);
+        mat4.rotate(transform, transform, 0.3 * now, [0, 1, 0]);
+        mat4.rotate(transform, transform, -90 * Math.PI / 180, [1, 0, 0]);
+        // mat4.scale(transform, transform, [2 / world.size, 2 / world.size, 2 / world.size]); // enabling this breaks normals...
+        mat4.translate(transform, transform, [-4, -4, -4]);
+        gl.uniformMatrix4fv(uTransformLoc, false, transform);
+
+        var normTransform = mat4.create();
+        mat4.invert(normTransform, transform);
+        mat4.transpose(normTransform, normTransform);
+        gl.uniformMatrix4fv(uNormTransformLoc, false, normTransform);
+
+        var camera = mat4.create();
+        //mat4.lookAt(camera, [], [0, 0, 0], [0, 0, 1]);
+
+        var project = mat4.create();
         mat4.perspective(project, fieldOfView, aspect, zNear, zFar);
+        gl.uniformMatrix4fv(uProjectLoc, false, project);
 
         // send the GPU the values it needs
-        gl.uniformMatrix4fv(uTransformLoc, false, transform);
-        gl.uniformMatrix4fv(uProjectLoc, false, project);
-        gl.uniformMatrix4fv(uNormTransformLoc, false, normTransform);
         gl.uniform2f(uResolutionLoc, gl.canvas.width, gl.canvas.height);
         gl.uniform1f(uTimeLoc, now);
 
         for (var i = 0; i < blocks.length; i++) {
             gl.uniform3fv(uOffsetLoc, blocks[i]);
-
             // draw a cube
             var count = 36;
             gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_SHORT, 0);
