@@ -1,0 +1,1 @@
+const FILL_ADD = 0, FILL_REMOVE = 1, FILL_TOGGLE = 2;
