@@ -89,7 +89,6 @@ function World(size) {
     // determines what properties are saved and accessible
     this.size = size;
     this.solid = solid;
-    this.playerPos = [3, 3, 1];
     this.isSolid = isSolid;
     this.fill = fill;
     this.fillArea = fillArea;

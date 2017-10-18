@@ -1,4 +1,5 @@
 // controller.js
+
 function update(){
     var world = new World(8);
     world.fillArea([0, 0, 6], [7, 7, 7], FILL_TOGGLE);
