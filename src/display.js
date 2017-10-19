@@ -44,25 +44,12 @@ void main() {
 }
 `;
 
-
-
-function main() {
-
-    // make a new world (currently in testing configuration)
-    var world = new World(8);
-    // fuck with the world a lot
-    world.fillArea([2, 2, 3], [5, 5, 5], FILL_ADD);
-    world.fillArea([3, 3, 6], [4, 4, 6], FILL_ADD);
-    world.fillArea([2, 3, 3], [5, 4, 4], FILL_REMOVE);
-    world.fillArea([3, 2, 3], [4, 5, 4], FILL_REMOVE);
-    world.fillArea([2, 2, 4], [5, 5, 6], FILL_TOGGLE);
-    // figure out what needs to be drawn
-    var blocks = world.getSolids();
+function Display() {
 
     // get a WebGL context
     var canvas = document.getElementById("glcanvas");
     var gl = canvas.getContext("webgl2");
-    if(!gl) {
+    if (!gl) {
         alert("No gl?");
         return;
     }
@@ -102,13 +89,23 @@ function main() {
     var uResolutionLoc = gl.getUniformLocation(program, "u_resolution");
     var uLightDirLoc = gl.getUniformLocation(program, "u_lightDir");
     var uTransformLoc = gl.getUniformLocation(program, "u_transform");
-    var uNormTransformLoc = gl.getUniformLocation(program, "u_normTransform"); // FIXME
+    var uNormTransformLoc = gl.getUniformLocation(program, "u_normTransform");
 
+    function loadWorld(world) {
+        this.world = world;
+    }
+
+    function update() {
+        this.blocks = this.world.getSolids();
+    }
 
     // scene drawing magic
     var then = 0;
-    requestAnimationFrame(drawScene);
-    function drawScene(now) {
+    requestAnimationFrame(render);
+
+    function render(now) {
+        world = display.world;
+        blocks = display.blocks;
         now *= 0.001;
         var deltaTime = now - then; // not used atm, but will be important for animations
         then = now;
@@ -121,56 +118,75 @@ function main() {
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.CULL_FACE);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        if (world) {
+            // use the program
+            gl.useProgram(program);
+            // use the right buffer (redundant now as there's only one)
+            gl.bindVertexArray(vao);
 
-        // use the program
-        gl.useProgram(program);
-        // use the right buffer (redundant now as there's only one)
-        gl.bindVertexArray(vao);
+            // send the GPU the values it needs
+            gl.uniform1f(uTimeLoc, now);
+            gl.uniform2f(uResolutionLoc, gl.canvas.width, gl.canvas.height);
+            gl.uniform3f(uLightDirLoc, 0.75, 0.8, 0.85);
 
-        // send the GPU the values it needs
-        gl.uniform1f(uTimeLoc, now);
-        gl.uniform2f(uResolutionLoc, gl.canvas.width, gl.canvas.height);
-        gl.uniform3f(uLightDirLoc, 0.75, 0.8, 0.85);
+            // view parameters
+            const fieldOfView = 45 * Math.PI / 180;
+            const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+            const zNear = 0.1;
+            const zFar = 100.0;
+            // where's the camera and where's it lookin'
+            var distance = world.size * 2.0;
+            var speed = 0.4;
+            var center = vec3.fromValues(world.size/2, world.size/2, world.size/2);
+            var path = vec3.fromValues(distance*Math.sin(speed*now), distance*Math.cos(speed*now), 1.5*Math.sin(0.3*speed*now));
+            vec3.add(path, path, center);
 
-        // view parameters
-        const fieldOfView = 45 * Math.PI / 180;
-        const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-        const zNear = 0.1;
-        const zFar = 100.0;
-        // where's the camera and where's it lookin'
-        var distance = world.size * 2.0;
-        var speed = 0.4;
-        var center = vec3.fromValues(world.size/2, world.size/2, world.size/2);
-        var path = vec3.fromValues(distance*Math.sin(speed*now), distance*Math.cos(speed*now), 1.5*Math.sin(0.3*speed*now));
+            // MATH, NOT EVEN ONCE
+            var view = mat4.create();
+            var projection = mat4.create();
+            var transform = mat4.create();
+            var normTransform = mat4.create();
+            mat4.lookAt(view, path, center, [0, 0, 1]);
+            // put things in perspective
+            mat4.perspective(projection, fieldOfView, aspect, zNear, zFar);
+            mat4.multiply(view, projection, view);
 
-        // MATH, NOT EVEN ONCE
-        var view = mat4.create();
-        var projection = mat4.create();
-        var transform = mat4.create();
-        var normTransform = mat4.create();
-        vec3.add(path, path, center);
-        mat4.lookAt(view, path, center, [0, 0, 1]);
-        // put things in perspective
-        mat4.perspective(projection, fieldOfView, aspect, zNear, zFar);
-        mat4.multiply(view, projection, view);
-
-        for (var i = 0; i < blocks.length; i++) {
-            // offset for each cube
-            mat4.fromTranslation(transform, blocks[i]);
-            var scale = 1.0 - 0.1 * Math.abs(Math.sin(2 * Math.PI * now));
-            // mat4.scale(transform, transform, [scale, scale, scale]);
-            mat4.invert(normTransform, transform);
-            mat4.transpose(normTransform, normTransform);
-            mat4.multiply(transform, view, transform);
-            // send transformation matrices
-            gl.uniformMatrix4fv(uTransformLoc, false, transform);
-            gl.uniformMatrix4fv(uNormTransformLoc, false, normTransform);
-            // draw a cube
-            gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+            for (var i = 0; i < blocks.length; i++) {
+                // offset for each cube
+                mat4.fromTranslation(transform, blocks[i]);
+                var scale = 1.0 - 0.1 * Math.abs(Math.sin(2 * Math.PI * now));
+                // mat4.scale(transform, transform, [scale, scale, scale]);
+                mat4.invert(normTransform, transform);
+                mat4.transpose(normTransform, normTransform);
+                mat4.multiply(transform, view, transform);
+                // send transformation matrices
+                gl.uniformMatrix4fv(uTransformLoc, false, transform);
+                gl.uniformMatrix4fv(uNormTransformLoc, false, normTransform);
+                // draw a cube
+                gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+            }
         }
-
-        requestAnimationFrame(drawScene); // again, again!
+        requestAnimationFrame(render); // again, again!
     }
+
+    this.canvas = canvas;
+    this.gl = gl;
+    this.program = program;
+    this.aPositionLoc = aPositionLoc;
+    this.aNormalLoc = aNormalLoc;
+    this.vao = vao;
+    this.positionBuf = positionBuf;
+    this.normalBuf = normalBuf;
+    this.indexBuf = indexBuf;
+    this.uTimeLoc = uTimeLoc;
+    this.uResolutionLoc = uResolutionLoc
+    this.uLightDirLoc = uLightDirLoc
+    this.uTransformLoc = uTransformLoc
+    this.uNormTransformLoc = uNormTransformLoc
+    this.then = then;
+    this.render = render;
+    this.loadWorld = loadWorld;
+    this.update = update;
 }
 
 const positions = [
@@ -258,4 +274,4 @@ const indices = [
     20, 21, 22,     20, 22, 23,   // left
 ];
 
-main();
+var display = new Display();
