@@ -84,7 +84,7 @@ function World(size) {
         fillArea([1,   s-1, s-1], [s-2, s-1, s-1]);
     };
     // run it, why not?
-    test();
+    // test();
 
     // determines what properties are saved and accessible
     this.size = size;
