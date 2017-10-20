@@ -56,6 +56,8 @@ function Display() {
 
     // link the shaders into a program
     var programInfo = twgl.createProgramInfo(gl, [vert, frag]);
+
+    // set attribues and fill buffers
     const arrays = {
         a_position: [1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0],
         a_normal:   [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1],
@@ -64,8 +66,10 @@ function Display() {
     var bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
     twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
 
+    // make the magic happen
     function render(time) {
         time *= 0.001;
+
         // make sure we're filling the available area
         twgl.resizeCanvasToDisplaySize(canvas);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -113,7 +117,8 @@ function Display() {
             for (var i = 0; i < blocks.length; i++) {
                 // offset for each cube
                 mat4.fromTranslation(transform, blocks[i]);
-                // var scale = 1.0 - 0.1 * Math.abs(Math.sin(2 * Math.PI * time));
+                // // enable this for happy fun good times
+                // var scale = 1.0 - 0.2 * Math.abs(Math.sin(2 * Math.PI * time));
                 // mat4.scale(transform, transform, [scale, scale, scale]);
                 mat4.invert(normTransform, transform);
                 mat4.transpose(normTransform, normTransform);
@@ -135,6 +140,7 @@ function Display() {
         this.blocks = world.getSolids();
     }
 
+    // determines what properties will be visible from outside the object
     this.update = update;
 
     requestAnimationFrame(render);
