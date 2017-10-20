@@ -5,14 +5,14 @@ var player;
 function main() {
     display = new Display();
     world = new World(8);
-    player = new Player(3, 3, 1);
-    display.update();
-    document.getElementById("glcanvas").addEventListener("click", clickity);
+    player = new Player(2, 2, 1);
+    test();
+    // document.getElementById("glcanvas").addEventListener("click", clackity);
 }
 
 // a simple test level
 function test() {
-    let s = size;
+    let s = world.size;
     // makes the floor solid
     world.fillArea([0,   0,   0  ], [s-1, s-1, 0  ]);
     // adds a tiny pedestal in the middle
@@ -39,16 +39,21 @@ function test2() {
 
 // for testing purposes, of course
 function clickity() {
-    var s = world.size - 4;
-    var x = Math.floor(s*Math.random());
-    var y = Math.floor(s*Math.random());
-    var z = Math.floor(s*Math.random());
+    // toggle a 4x4 cube
+    let s = world.size - 4;
+    let x = Math.floor(s * Math.random());
+    let y = Math.floor(s * Math.random());
+    let z = Math.floor(s * Math.random());
     world.fillArea([x, y, z], [x+4, y+4, z+4], FILL_TOGGLE);
-    display.update();
 }
 
 function clackity() {
-    alert('HOW DID YOU EVEN GET HERE?');
+    // toggle a single cube away from the edge
+    let s = world.size - 2;
+    let x = Math.floor(s * Math.random()) + 1;
+    let y = Math.floor(s * Math.random()) + 1;
+    let z = Math.floor(s * Math.random()) + 1;
+    world.fillArea([x, y, z], [x, y, z], FILL_TOGGLE);
 }
 
 main();

@@ -59,7 +59,7 @@ function Display() {
 
     // set attribues and fill buffers
     const arrays = {
-        a_position: [1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0],
+        a_position: [0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5],
         a_normal:   [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1],
         indices:  [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23],
     };
@@ -74,23 +74,16 @@ function Display() {
         twgl.resizeCanvasToDisplaySize(canvas);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         // clear the canvas
-        gl.clearColor(0, 0, 0, 1);
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.CULL_FACE);
-        // gl.enable(gl.CULL_FACE);
+        gl.clearColor(0.1, 0.1, 0.1, 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        blocks = display.blocks;
-        if (blocks) {
+        if (world) {
+            size = world.size;
+            blocks = world.getSolids();
             // use the program
             gl.useProgram(programInfo.program);
-
-            var properties = {
-                u_lightDir: [0.75, 0.8, 0.85],
-                u_resolution: [gl.canvas.width, gl.canvas.height],
-                u_time: time,
-            };
-            twgl.setUniforms(programInfo, properties);
 
             // view parameters
             const fieldOfView = 45 * Math.PI / 180;
@@ -98,9 +91,9 @@ function Display() {
             const zNear = 0.1;
             const zFar = 100.0;
             // where's the camera and where's it lookin'
-            var distance = world.size * 2.0;
+            var distance = size * 2.0;
             var speed = 0.4;
-            var center = vec3.fromValues(world.size/2, world.size/2, world.size/2);
+            var center = vec3.fromValues((size-1)/2, (size-1)/2, (size-1)/2);
             var path = vec3.fromValues(distance*Math.sin(speed*time), distance*Math.cos(speed*time), 1.5*Math.sin(0.3*speed*time));
             vec3.add(path, path, center);
 
@@ -114,12 +107,32 @@ function Display() {
             mat4.perspective(projection, fieldOfView, aspect, zNear, zFar);
             mat4.multiply(view, projection, view);
 
+            var properties = {
+                u_lightDir: [0.75, 0.8, 0.85],
+                u_resolution: [gl.canvas.width, gl.canvas.height],
+                u_time: time,
+            };
+            twgl.setUniforms(programInfo, properties);
+
             for (var i = 0; i < blocks.length; i++) {
-                // offset for each cube
                 mat4.fromTranslation(transform, blocks[i]);
-                // // enable this for happy fun good times
-                // var scale = 1.0 - 0.2 * Math.abs(Math.sin(2 * Math.PI * time));
-                // mat4.scale(transform, transform, [scale, scale, scale]);
+                mat4.invert(normTransform, transform);
+                mat4.transpose(normTransform, normTransform);
+                mat4.multiply(transform, view, transform);
+                // send transformation matrices
+                var transforms = {
+                    u_transform: transform,
+                    u_normTransform: normTransform,
+                };
+                twgl.setUniforms(programInfo, transforms);
+                // draw a cube
+                twgl.drawBufferInfo(gl, bufferInfo);
+            }
+
+            if (player) {
+                var pos = [player.x, player.y, player.z];
+                var scale = 0.7 + 0.2 * Math.sin(8.6 * time);
+                mat4.fromRotationTranslationScale(transform, [0, 0, 0, 1], pos, [scale, scale, scale]);
                 mat4.invert(normTransform, transform);
                 mat4.transpose(normTransform, normTransform);
                 mat4.multiply(transform, view, transform);
@@ -136,12 +149,6 @@ function Display() {
         requestAnimationFrame(render); // again, again!
     }
 
-    function update() {
-        this.blocks = world.getSolids();
-    }
-
-    // determines what properties will be visible from outside the object
-    this.update = update;
-
+    // get this party started
     requestAnimationFrame(render);
 }

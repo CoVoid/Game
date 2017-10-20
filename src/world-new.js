@@ -53,7 +53,7 @@ function World(size) {
         }
     };
 
-    // returns an array with the coordinate of every solid block
+    // returns an array with the coordinate of every solid block TODO cache this value
     function getSolids() {
         solids = [];
         for (var x = 0; x < size; x++) {
@@ -75,6 +75,7 @@ function World(size) {
     this.fill = fill;
     this.fillArea = fillArea;
     this.getSolids = getSolids;
+    this.rebuild = true;
 }
 
 World.prototype.toString = function toString() {
