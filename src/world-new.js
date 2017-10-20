@@ -23,16 +23,13 @@ function World(size) {
     function fill(x, y, z, operation) {
         switch(operation) {
             case FILL_ADD:
-                solid[x][y][z] = true;
-                break;
+                return solid[x][y][z] = true;
             case FILL_REMOVE:
-                solid[x][y][z] = false;
-                break;
+                return solid[x][y][z] = false;
             case FILL_TOGGLE:
-                solid[x][y][z] = !solid[x][y][z];
-                break;
+                return solid[x][y][z] = !solid[x][y][z];
             default:
-                console.log('There\'s been a mistake');
+                console.log('ERR: Invalid fill operation');
         }
     }
 
@@ -42,6 +39,11 @@ function World(size) {
         var x1 = Math.min(p1[0], p2[0]), x2 = Math.max(p1[0], p2[0]);
         var y1 = Math.min(p1[1], p2[1]), y2 = Math.max(p1[1], p2[1]);
         var z1 = Math.min(p1[2], p2[2]), z2 = Math.max(p1[2], p2[2]);
+        if (x1 < 0 || y1 < 0 || z1 < 0 || x2 > size-1 || y2 > size-1 || z2 > size-1) {
+            return console.log('ERR: Invalid range');
+        }
+
+        // fill 'er up
         for (var x = x1; x <= x2; x++) {
             for (var y = y1; y <= y2; y++) {
                 for (var z = z1; z <= z2; z++) {
@@ -51,7 +53,7 @@ function World(size) {
         }
     };
 
-    // returns an array with the coordinate of every solid block
+    // returns an array with the coordinate of every solid block TODO cache this value
     function getSolids() {
         solids = [];
         for (var x = 0; x < size; x++) {
@@ -66,33 +68,14 @@ function World(size) {
         return solids;
     }
 
-    // adds some terrain to test the level
-    function test() {
-        let s = size;
-        // makes the floor solid
-        fillArea([0,   0,   0  ], [s-1, s-1, 0  ]);
-        // adds a tiny pedestal in the middle
-        fillArea([3,   3,   1  ], [4,   4,   1  ]);
-        // adds a frame
-        fillArea([0,   0,   1  ], [0,   0,   s-1]);
-        fillArea([0,   s-1, 1  ], [0,   s-1, s-1]);
-        fillArea([s-1, 0,   1  ], [s-1, 0,   s-1]);
-        fillArea([s-1, s-1, 1  ], [s-1, s-1, s-1]);
-        fillArea([0,   1,   s-1], [0,   s-2, s-1]);
-        fillArea([1,   0,   s-1], [s-2, 0,   s-1]);
-        fillArea([s-1, 1,   s-1], [s-1, s-2, s-1]);
-        fillArea([1,   s-1, s-1], [s-2, s-1, s-1]);
-    };
-    // run it, why not?
-    test();
-
-    // determines what properties are saved and accessible
+    // determines what properties will be visible from outside
     this.size = size;
-    this.solid = solid;
+    // this.solid = solid; // please use isSolid() instead
     this.isSolid = isSolid;
     this.fill = fill;
     this.fillArea = fillArea;
     this.getSolids = getSolids;
+    this.rebuild = true;
 }
 
 World.prototype.toString = function toString() {
