@@ -9,4 +9,6 @@ function Player(x, y, z) {
         this.y = y;
         this.z = z;
     }
+
+    this.move = move;
 }

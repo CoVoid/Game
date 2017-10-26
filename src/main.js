@@ -1,11 +1,13 @@
 var world;
 var display;
 var player;
+var controller;
 
 function main() {
     display = new Display();
     world = new World(8);
     player = new Player(2, 2, 1);
+    controller = new Controller();
     test();
     // document.getElementById("glcanvas").addEventListener("click", clackity);
 }
