@@ -2,12 +2,27 @@ var world;
 var display;
 var player;
 
+var mouse = {x: 0, y: 0}; // exercise caution using these values... their coordinates are WEEEEEEEEIRD
+
 function main() {
     display = new Display();
     world = new World(8);
     player = new Player(2, 2, 1);
+
     test();
-    // document.getElementById("glcanvas").addEventListener("click", clackity);
+    display.canvas.addEventListener("click", clackity);
+    display.canvas.addEventListener("mousemove", mouseTest);
+    display.canvas.addEventListener("mouseleave", mouseTest2);
+}
+
+function mouseTest(m) {
+    mouse.x = (2 * event.clientX - display.canvas.clientWidth) / display.canvas.clientHeight;
+    mouse.y = -2 * event.clientY / display.canvas.clientHeight + 1;
+}
+
+function mouseTest2(m) {
+    mouse.x = 0;
+    mouse.y = 0;
 }
 
 // a simple test level

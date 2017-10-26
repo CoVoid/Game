@@ -4,14 +4,24 @@ var vert = `#version 300 es
 in vec4 a_position;
 in vec3 a_normal;
 
-uniform mat4 u_transform;
+uniform vec3 u_lightPos;
+uniform vec3 u_viewPos;
+
+uniform mat4 u_mTransform;
+uniform mat4 u_mvpTransform;
 uniform mat4 u_normTransform;
 
 out vec3 v_normal;
+out vec3 v_toLight;
+out vec3 v_toView;
 
 void main() {
-    gl_Position = u_transform * a_position;
+    gl_Position = u_mvpTransform * a_position;
     v_normal = mat3(u_normTransform) * a_normal;
+
+    vec3 position = (u_mTransform * a_position).xyz;
+    v_toLight = u_lightPos - position;
+    v_toView = u_viewPos - position;
 }
 `;
 
@@ -20,6 +30,8 @@ var frag = `#version 300 es
 precision highp float;
 
 in vec3 v_normal;
+in vec3 v_toLight;
+in vec3 v_toView;
 
 uniform vec3 u_lightDir;
 uniform vec2 u_resolution;
@@ -37,10 +49,25 @@ void main() {
     color.g = sin(2.0 * f + 2.0944) * 0.6666 + 0.3333;
     color.b = sin(2.0 * f + 4.1887) * 0.6666 + 0.3333;
 
+    vec3 light;
     vec3 normal = normalize(v_normal);
-    vec3 light = normalize(u_lightDir);
-    float lighting = max(dot(normal.xyz, light), 0.0) * 0.8 + 0.2;
-    color.rgb *= lighting;
+    // ambient lighting
+    float aLighting = 0.2;
+    // directional lighting
+    light = normalize(u_lightDir);
+    float dLighting = 0.3 * max(dot(normal.xyz, light), 0.0);
+    // point lighting
+    light = normalize(v_toLight);
+    float pLighting = 0.7 * max(dot(normal.xyz, light), 0.0);
+    // specular highlighting
+    vec3 view = normalize(v_toView);
+    vec3 halfVector = normalize(view + light);
+    float hLighting = 0.0;
+    if (pLighting != 0.0)
+        hLighting = pow(max(dot(normal, halfVector), 0.0), 2.0) * 0.4;
+
+    color.rgb *= (aLighting + dLighting + pLighting);
+    color.rgb += hLighting;
 }
 `;
 
@@ -94,34 +121,42 @@ function Display() {
             var distance = size * 2.0;
             var speed = 0.4;
             var center = vec3.fromValues((size-1)/2, (size-1)/2, (size-1)/2);
-            var path = vec3.fromValues(distance*Math.sin(speed*time), distance*Math.cos(speed*time), 1.5*Math.sin(0.3*speed*time));
+            var path = vec3.fromValues(distance*Math.sin(speed*time), distance*Math.cos(speed*time), 2.3*Math.sin(0.3*speed*time));
             vec3.add(path, path, center);
-
-            // MATH, NOT EVEN ONCE
-            var view = mat4.create();
-            var projection = mat4.create();
-            var transform = mat4.create();
-            var normTransform = mat4.create();
-            mat4.lookAt(view, path, center, [0, 0, 1]);
-            // put things in perspective
-            mat4.perspective(projection, fieldOfView, aspect, zNear, zFar);
-            mat4.multiply(view, projection, view);
 
             var properties = {
                 u_lightDir: [0.75, 0.8, 0.85],
+                u_lightPos: [3.5, 3.5, 5.5 + 2 * Math.sin(time)],
+                u_viewPos: path,
                 u_resolution: [gl.canvas.width, gl.canvas.height],
                 u_time: time,
             };
             twgl.setUniforms(programInfo, properties);
 
+            // MATH, NOT EVEN ONCE
+            var mTransform = mat4.create()
+            var vTransform = mat4.create();
+            var pTransform = mat4.create();
+            var vpTransform = mat4.create();
+            var mvpTransform = mat4.create();
+            var normTransform = mat4.create();
+            mat4.lookAt(vTransform, path, center, [0, 0, 1]);
+            mat4.invert(vTransform, vTransform);
+            mat4.translate(vTransform, vTransform, [0.1*mouse.x, 0.1*mouse.y, 0]);
+            mat4.invert(vTransform, vTransform);
+            // put things in perspective
+            mat4.perspective(pTransform, fieldOfView, aspect, zNear, zFar);
+            mat4.multiply(vpTransform, pTransform, vTransform);
+
             for (var i = 0; i < blocks.length; i++) {
-                mat4.fromTranslation(transform, blocks[i]);
-                mat4.invert(normTransform, transform);
+                mat4.fromTranslation(mTransform, blocks[i]);
+                mat4.invert(normTransform, mTransform);
                 mat4.transpose(normTransform, normTransform);
-                mat4.multiply(transform, view, transform);
+                mat4.multiply(mvpTransform, vpTransform, mTransform);
                 // send transformation matrices
                 var transforms = {
-                    u_transform: transform,
+                    u_mTransform: mTransform,
+                    u_mvpTransform: mvpTransform,
                     u_normTransform: normTransform,
                 };
                 twgl.setUniforms(programInfo, transforms);
@@ -132,13 +167,14 @@ function Display() {
             if (player) {
                 var pos = [player.x, player.y, player.z];
                 var scale = 0.7 + 0.2 * Math.sin(8.6 * time);
-                mat4.fromRotationTranslationScale(transform, [0, 0, 0, 1], pos, [scale, scale, scale]);
-                mat4.invert(normTransform, transform);
+                mat4.fromRotationTranslationScale(mTransform, [0, 0, 0, 1], pos, [scale, scale, scale]);
+                mat4.invert(normTransform, mTransform);
                 mat4.transpose(normTransform, normTransform);
-                mat4.multiply(transform, view, transform);
+                mat4.multiply(mvpTransform, vpTransform, mTransform);
                 // send transformation matrices
                 var transforms = {
-                    u_transform: transform,
+                    u_mTransform: mTransform,
+                    u_mvpTransform: mvpTransform,
                     u_normTransform: normTransform,
                 };
                 twgl.setUniforms(programInfo, transforms);
@@ -148,6 +184,8 @@ function Display() {
         }
         requestAnimationFrame(render); // again, again!
     }
+
+    this.canvas = canvas;
 
     // get this party started
     requestAnimationFrame(render);
