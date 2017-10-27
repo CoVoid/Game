@@ -1,15 +1,13 @@
-var world;
-var display;
-var player;
-var controller;
-
-var mouse = {x: 0, y: 0}; // exercise caution using these values... their coordinates are WEEEEEEEEIRD
+// var world;
+// var display;
+// var player;
+// var controller;
 
 function main() {
-    display = new Display();
-    world = new World(8);
-    player = new Player(2, 2, 1);
-    controller = new Controller();
+    world.init(8);
+    player.init(2, 2, 1);
+    controller.init();
+    display.init();
 
     test();
     display.canvas.addEventListener("click", clackity);
@@ -44,13 +42,13 @@ function main() {
     }
 
     function mouseTest(m) {
-        mouse.x = (2 * event.clientX - display.canvas.clientWidth) / display.canvas.clientHeight;
-        mouse.y = -2 * event.clientY / display.canvas.clientHeight + 1;
+        let x = (2 * event.clientX - display.canvas.clientWidth) / display.canvas.clientHeight;
+        let y = -2 * event.clientY / display.canvas.clientHeight + 1;
+        display.offset(x, y);
     }
 
     function mouseTest2(m) {
-        mouse.x = 0;
-        mouse.y = 0;
+        display.offset(0, 0);
     }
 
     // for testing purposes, of course
@@ -69,7 +67,7 @@ function main() {
         let x = Math.floor(s * Math.random()) + 1;
         let y = Math.floor(s * Math.random()) + 1;
         let z = Math.floor(s * Math.random()) + 1;
-        world.fillArea([x, y, z], [x, y, z], FILL_TOGGLE);
+        world.fill([x, y, z], FILL_TOGGLE);
     }
 }
 

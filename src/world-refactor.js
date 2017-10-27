@@ -1,26 +1,31 @@
-// world.js
+var world = (function() {
 
-function World(size) {
+    var solid;
+    var size;
 
-    // fill a volume with 'false'
-    var solid = new Array(size);
-    for (var x = 0; x < size; x++) {
-        solid[x] = new Array(size);
-        for (var y = 0; y < size; y++) {
-            solid[x][y] = new Array(size);
-            for (var z = 0; z < size; z++) {
-                solid[x][y][z] = false;
+    // sets up an empty world
+    function init(s = 8) {
+        size = s;
+        solid = new Array(size);
+        for (var x = 0; x < size; x++) {
+            solid[x] = new Array(size);
+            for (var y = 0; y < size; y++) {
+                solid[x][y] = new Array(size);
+                for (var z = 0; z < size; z++) {
+                    solid[x][y][z] = false;
+                }
             }
         }
     }
 
     // does exactly what you'd expect
-    function isSolid(x, y, z) {
-        return solid[x][y][z];
+    function isSolid(p) {
+        return solid[p[0]][p[1]][p[2]];
     }
 
     // fills a single pixel
-    function fill(x, y, z, operation) {
+    function fill(p, operation = FILL_ADD) {
+        let x = p[0], y = p[1], z = p[2];
         switch(operation) {
             case FILL_ADD:
                 return solid[x][y][z] = true;
@@ -47,15 +52,15 @@ function World(size) {
         for (var x = x1; x <= x2; x++) {
             for (var y = y1; y <= y2; y++) {
                 for (var z = z1; z <= z2; z++) {
-                    fill(x, y, z, operation);
+                    fill([x, y, z], operation);
                 }
             }
         }
-    };
+    }
 
     // returns an array with the coordinate of every solid block TODO cache this value
     function getSolids() {
-        solids = [];
+        let solids = [];
         for (var x = 0; x < size; x++) {
             for (var y = 0; y < size; y++) {
                 for (var z = 0; z < size; z++) {
@@ -68,26 +73,28 @@ function World(size) {
         return solids;
     }
 
-    // determines what properties will be visible from outside
-    this.size = size;
-    // this.solid = solid; // please use isSolid() instead
-    this.isSolid = isSolid;
-    this.fill = fill;
-    this.fillArea = fillArea;
-    this.getSolids = getSolids;
-    this.rebuild = true;
-}
+    return {
+        init: init,
+        isSolid: isSolid,
+        fill: fill,
+        fillArea: fillArea,
+        get size() {return size},
+        get solids() {return getSolids()}
+    };
 
-World.prototype.toString = function toString() {
-    var string = '';
-    for (var z = this.size - 1; z >= 0; z--) {
-        for (var y = 0; y < this.size; y++) {
-            for (var x = 0; x < this.size; x++) {
-                string += this.solid[x][y][z] ? 'X' : ' ';
-            }
-            string += '\n';
-        }
-        string += '\n';
-    }
-    return string;
-}
+})();
+
+// *** DEPRICATED ***
+// World.prototype.toString = function toString() {
+//     var string = '';
+//     for (var z = this.size - 1; z >= 0; z--) {
+//         for (var y = 0; y < this.size; y++) {
+//             for (var x = 0; x < this.size; x++) {
+//                 string += this.solid[x][y][z] ? 'X' : ' ';
+//             }
+//             string += '\n';
+//         }
+//         string += '\n';
+//     }
+//     return string;
+// }
