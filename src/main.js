@@ -1,31 +1,16 @@
-var world;
-var display;
-var player;
-var controller;
-
-var mouse = {x: 0, y: 0}; // exercise caution using these values... their coordinates are WEEEEEEEEIRD
+// var world;
+// var display;
+// var player;
+// var controller;
 
 function main() {
-    display = new Display();
-    world = new World(8);
-    player = new Player(2, 2, 1);
-    controller = new Controller();
-
+    world.init(8);
     test();
-    display.canvas.addEventListener("click", clackity);
-    display.canvas.addEventListener("mousemove", mouseTest);
-    display.canvas.addEventListener("mouseleave", mouseTest2);
-    // document.getElementById("glcanvas").addEventListener("click", clackity);
+    player.init([2, 2, 1]);
+    display.init();
+    controller.init();
 
-    function mouseTest(m) {
-        mouse.x = (2 * event.clientX - display.canvas.clientWidth) / display.canvas.clientHeight;
-        mouse.y = -2 * event.clientY / display.canvas.clientHeight + 1;
-    }
-
-    function mouseTest2(m) {
-        mouse.x = 0;
-        mouse.y = 0;
-    }
+    // display.canvas.addEventListener("click", clackity);
 
     // a simple test level
     function test() {
@@ -63,14 +48,14 @@ function main() {
         let z = Math.floor(s * Math.random());
         world.fillArea([x, y, z], [x+4, y+4, z+4], FILL_TOGGLE);
     }
-    
+
     function clackity() {
         // toggle a single cube away from the edge
         let s = world.size - 2;
         let x = Math.floor(s * Math.random()) + 1;
         let y = Math.floor(s * Math.random()) + 1;
         let z = Math.floor(s * Math.random()) + 1;
-        world.fillArea([x, y, z], [x, y, z], FILL_TOGGLE);
+        world.fill([x, y, z], FILL_TOGGLE);
     }
 }
 
