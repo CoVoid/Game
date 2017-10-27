@@ -5,14 +5,12 @@
 
 function main() {
     world.init(8);
-    player.init(2, 2, 1);
-    controller.init();
-    display.init();
-
     test();
-    display.canvas.addEventListener("click", clackity);
-    display.canvas.addEventListener("mousemove", mouseTest);
-    display.canvas.addEventListener("mouseleave", mouseTest2);
+    player.init([2, 2, 1]);
+    display.init();
+    controller.init();
+
+    // display.canvas.addEventListener("click", clackity);
 
     // a simple test level
     function test() {
@@ -39,16 +37,6 @@ function main() {
         world.fillArea([2, 3, 3], [5, 4, 4], FILL_REMOVE);
         world.fillArea([3, 2, 3], [4, 5, 4], FILL_REMOVE);
         world.fillArea([2, 2, 4], [5, 5, 6], FILL_TOGGLE);
-    }
-
-    function mouseTest(m) {
-        let x = (2 * event.clientX - display.canvas.clientWidth) / display.canvas.clientHeight;
-        let y = -2 * event.clientY / display.canvas.clientHeight + 1;
-        display.offset(x, y);
-    }
-
-    function mouseTest2(m) {
-        display.offset(0, 0);
     }
 
     // for testing purposes, of course

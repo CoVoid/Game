@@ -2,32 +2,13 @@ var player = (function() {
 
     var pos = [];
 
-    function init(x, y, z) {
-        pos = new Array(3);
-        pos[0] = x;
-        pos[1] = y;
-        pos[2] = z;
+    function init(p) {
+        pos = p;
     }
 
     function move(dir) {
         let x = pos[0], y = pos[1], z = pos[2];
-        let dx = 0, dy = 0;
-        switch(dir) {
-            case NORTH:
-                dy = 1;
-                break;
-            case SOUTH:
-                dy = -1;
-                break;
-            case WEST:
-                dx = -1;
-                break
-            case EAST:
-                dx = 1;
-                break;
-            default:
-                return console.log('Not a valid direction');
-        }
+        let dx = dir[0], dy = dir[1];
         if (!world.isSolid([x + dx, y + dy, z])) {
             pos[0] = x + dx;
             pos[1] = y + dy;

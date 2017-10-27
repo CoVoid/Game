@@ -120,7 +120,7 @@ var display = (function() {
         gl.clearColor(0.1, 0.1, 0.1, 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        if (world) {
+        if (world) { // TODO this line might not be doing anything
             let size = world.size;
             let blocks = world.solids;
             // use the program
@@ -180,9 +180,8 @@ var display = (function() {
             }
 
             if (player) {
-                var pos = player.pos;
                 var scale = 0.7 + 0.2 * Math.sin(8.6 * time);
-                mat4.fromRotationTranslationScale(mTransform, [0, 0, 0, 1], pos, [scale, scale, scale]);
+                mat4.fromRotationTranslationScale(mTransform, [0, 0, 0, 1], player.pos, [scale, scale, scale]);
                 mat4.invert(normTransform, mTransform);
                 mat4.transpose(normTransform, normTransform);
                 mat4.multiply(mvpTransform, vpTransform, mTransform);
