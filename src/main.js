@@ -15,17 +15,6 @@ function main() {
     display.canvas.addEventListener("click", clackity);
     display.canvas.addEventListener("mousemove", mouseTest);
     display.canvas.addEventListener("mouseleave", mouseTest2);
-    // document.getElementById("glcanvas").addEventListener("click", clackity);
-
-    function mouseTest(m) {
-        mouse.x = (2 * event.clientX - display.canvas.clientWidth) / display.canvas.clientHeight;
-        mouse.y = -2 * event.clientY / display.canvas.clientHeight + 1;
-    }
-
-    function mouseTest2(m) {
-        mouse.x = 0;
-        mouse.y = 0;
-    }
 
     // a simple test level
     function test() {
@@ -54,6 +43,16 @@ function main() {
         world.fillArea([2, 2, 4], [5, 5, 6], FILL_TOGGLE);
     }
 
+    function mouseTest(m) {
+        mouse.x = (2 * event.clientX - display.canvas.clientWidth) / display.canvas.clientHeight;
+        mouse.y = -2 * event.clientY / display.canvas.clientHeight + 1;
+    }
+
+    function mouseTest2(m) {
+        mouse.x = 0;
+        mouse.y = 0;
+    }
+
     // for testing purposes, of course
     function clickity() {
         // toggle a 4x4 cube
@@ -63,7 +62,7 @@ function main() {
         let z = Math.floor(s * Math.random());
         world.fillArea([x, y, z], [x+4, y+4, z+4], FILL_TOGGLE);
     }
-    
+
     function clackity() {
         // toggle a single cube away from the edge
         let s = world.size - 2;
